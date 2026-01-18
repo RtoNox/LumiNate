@@ -11,7 +11,6 @@ public class BatterySystem : IRechargeable
     private bool isRecharging = false;
     private float rechargeRate = 0f;
     
-    // IRechargeable Interface Properties
     public float CurrentCharge 
     { 
         get => currentCharge;
@@ -24,7 +23,6 @@ public class BatterySystem : IRechargeable
                 OnChargeChanged?.Invoke(currentCharge);
             }
             
-            // Check if fully charged
             if (currentCharge >= maxCharge && oldValue < maxCharge)
             {
                 OnFullyCharged?.Invoke();
@@ -44,15 +42,12 @@ public class BatterySystem : IRechargeable
     
     public bool IsFullyCharged => currentCharge >= maxCharge;
     
-    // Added missing interface property
     public bool IsRecharging => isRecharging;
     
-    // IRechargeable Interface Events
     public event Action<float> OnChargeChanged;
-    public event Action<float> OnChargeConsumed; // Added missing event
-    public event Action OnFullyCharged; // Added missing event
+    public event Action<float> OnChargeConsumed;
+    public event Action OnFullyCharged;
     
-    // Your custom events
     public event Action<bool> OnRechargeStateChanged;
     
     public BatterySystem(float initialMaxCharge, float initialCharge = -1)
@@ -61,7 +56,6 @@ public class BatterySystem : IRechargeable
         CurrentCharge = initialCharge >= 0 ? initialCharge : initialMaxCharge;
     }
     
-    // IRechargeable Interface Methods
     public void Recharge(float amount)
     {
         if (amount <= 0 || IsFullyCharged) return;
@@ -103,16 +97,15 @@ public class BatterySystem : IRechargeable
         OnChargeChanged?.Invoke(currentCharge);
     }
     
-    // Your custom methods
     public void Drain(float amount)
     {
         if (isRecharging) return;
-        ConsumeCharge(amount); // Use interface method
+        ConsumeCharge(amount);
     }
     
     public void AddCharge(float amount)
     {
-        Recharge(amount); // Use interface method
+        Recharge(amount);
     }
     
     public void StartRecharge(float rate)
@@ -146,6 +139,5 @@ public class BatterySystem : IRechargeable
         return currentCharge >= requiredCharge;
     }
     
-    // Helper property
     public float ChargePercentage => currentCharge / maxCharge;
 }

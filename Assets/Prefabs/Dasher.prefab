@@ -100,8 +100,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 50
-  moveSpeed: 3
-  chaseSpeed: 5
+  moveSpeed: 1
+  chaseSpeed: 1
   damageOnContact: 10
   attackCooldown: 1
   baseRevealDuration: 3

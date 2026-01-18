@@ -1,49 +1,32 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class Flashlight : MonoBehaviour, IRechargeable
+public class Flashlight : MonoBehaviour
 {
     [Header("Flashlight Settings")]
     [SerializeField] private float coneAngle = 60f;
     [SerializeField] private float coneLength = 8f;
     [SerializeField] private Gradient coneGradient;
     
-    [Header("Battery Settings")]
-    [SerializeField] private float maxCharge = 100f;
-    [SerializeField] private float currentCharge = 100f;
-    
-    [Header("Detection & Damage")]
+    [Header("Detection")]
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private float detectionUpdateRate = 0.1f;
+    
+    [Header("Damage Settings")]
+    [SerializeField] private float damagePerSecond = 10f;
     [SerializeField] private float damageMultiplier = 1f;
     
-    [Header("Visual Effects")]
-    [SerializeField] private ParticleSystem flashlightParticles;
-    [SerializeField] private Color activeColor = Color.white;
-    [SerializeField] private Color lowBatteryColor = Color.yellow;
-    
-    // Components
-    private Mesh mesh;
+    [Header("References")]
+    private PlayerController owner;
+        private Mesh mesh;
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
-    private PlayerController owner;
-    private float lastDetectionTime;
     
-    // State
     private bool isActive = true;
-    private Color currentConeColor;
+    private float lastDetectionTime;
     private List<BaseEnemy> enemiesInLight = new List<BaseEnemy>();
     
-    // Events
-    public event System.Action<float> OnChargeChanged;
-    public event System.Action<float> OnChargeConsumed;
-    public event System.Action OnFullyCharged;
-    
-    // Interface Properties
-    public float CurrentCharge { get => currentCharge; private set => currentCharge = Mathf.Clamp(value, 0, maxCharge); }
-    public float MaxCharge { get => maxCharge; private set => maxCharge = Mathf.Max(0, value); }
-    public bool IsFullyCharged { get => currentCharge >= maxCharge; }
     public bool IsActive => isActive;
     
     void Start()
@@ -51,32 +34,32 @@ public class Flashlight : MonoBehaviour, IRechargeable
         InitializeComponents();
         CreateFlashlightMesh();
         
-        currentConeColor = activeColor;
-        
-        // Setup material
         Material material = new Material(Shader.Find("Sprites/Default"));
         meshRenderer.material = material;
         
-        // Setup particles
-        if (flashlightParticles != null)
+        if (owner == null)
         {
-            var main = flashlightParticles.main;
-            main.startColor = activeColor;
+            owner = GetComponentInParent<PlayerController>();
         }
     }
     
     void Update()
     {
         UpdateMeshVisibility();
-        UpdateConeColor();
         
-        if (isActive && Time.time - lastDetectionTime >= detectionUpdateRate)
+        if (isActive && owner != null && owner.IsFlashlightOn)
         {
-            DetectEnemies();
-            lastDetectionTime = Time.time;
+            if (Time.time - lastDetectionTime >= detectionUpdateRate)
+            {
+                DetectEnemies();
+                ApplyDamageToEnemies();
+                lastDetectionTime = Time.time;
+            }
         }
-        
-        // Smoothly rotate to follow mouse (handled by PlayerController)
+        else
+        {
+            enemiesInLight.Clear();
+        }
     }
     
     void InitializeComponents()
@@ -94,12 +77,9 @@ public class Flashlight : MonoBehaviour, IRechargeable
         Color[] colors = new Color[vertices.Length];
         int[] triangles = new int[rayCount * 3];
         
-        // Origin point
         vertices[0] = Vector3.zero;
         colors[0] = coneGradient.Evaluate(0);
-        colors[0] *= currentConeColor;
         
-        // Create cone
         for (int i = 0; i <= rayCount; i++)
         {
             float angle = -coneAngle / 2 + (coneAngle / rayCount) * i;
@@ -108,8 +88,7 @@ public class Flashlight : MonoBehaviour, IRechargeable
             vertices[i + 1] = direction * coneLength;
             
             float t = (float)i / rayCount;
-            Color gradientColor = coneGradient.Evaluate(t);
-            colors[i + 1] = gradientColor * currentConeColor;
+            colors[i + 1] = coneGradient.Evaluate(t);
             
             if (i < rayCount)
             {
@@ -127,106 +106,40 @@ public class Flashlight : MonoBehaviour, IRechargeable
     
     void UpdateMeshVisibility()
     {
-        meshRenderer.enabled = isActive && currentCharge > 0;
-        
-        if (flashlightParticles != null)
-        {
-            if (isActive && currentCharge > 0)
-            {
-                if (!flashlightParticles.isPlaying)
-                    flashlightParticles.Play();
-            }
-            else
-            {
-                if (flashlightParticles.isPlaying)
-                    flashlightParticles.Stop();
-            }
-        }
-    }
-    
-    void UpdateConeColor()
-    {
-        if (owner == null) return;
-        
-        Color targetColor = activeColor;
-        
-        // Change color based on battery level
-        if (owner.BatteryPercentage <= 0.2f)
-        {
-            // Pulse between yellow and white when battery is low
-            float pulse = Mathf.PingPong(Time.time * 2f, 1f);
-            targetColor = Color.Lerp(lowBatteryColor, activeColor, pulse);
-        }
-        else if (!isActive || currentCharge <= 0)
-        {
-            targetColor = Color.gray;
-        }
-        
-        // Smoothly transition colors
-        currentConeColor = Color.Lerp(currentConeColor, targetColor, Time.deltaTime * 5f);
-        
-        // Update particle color
-        if (flashlightParticles != null)
-        {
-            var main = flashlightParticles.main;
-            main.startColor = currentConeColor;
-        }
-        
-        // Update mesh colors
-        UpdateMeshColors();
-    }
-    
-    void UpdateMeshColors()
-    {
-        if (mesh.colors.Length == 0) return;
-        
-        Color[] colors = mesh.colors;
-        colors[0] = coneGradient.Evaluate(0) * currentConeColor;
-        
-        for (int i = 1; i < colors.Length; i++)
-        {
-            float t = (float)(i - 1) / (colors.Length - 2);
-            Color gradientColor = coneGradient.Evaluate(t);
-            colors[i] = gradientColor * currentConeColor;
-        }
-        
-        mesh.colors = colors;
+        bool shouldBeVisible = isActive && owner != null && owner.IsFlashlightOn && owner.CurrentCharge > 0;
+        meshRenderer.enabled = shouldBeVisible;
     }
     
     void DetectEnemies()
     {
-        // Clear previous list
-        enemiesInLight.Clear();
+        List<BaseEnemy> newEnemiesInLight = new List<BaseEnemy>();
         
-        if (!isActive || currentCharge <= 0) return;
+        if (!isActive || owner == null || !owner.IsFlashlightOn) return;
         
-        // Check for enemies in cone
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, coneLength, enemyLayer);
         
         foreach (Collider2D hit in hits)
         {
             Vector3 directionToEnemy = hit.transform.position - transform.position;
+            float distanceToEnemy = directionToEnemy.magnitude;
             
-            // Check if enemy is within cone angle
             float angleToEnemy = Vector3.Angle(transform.right, directionToEnemy);
-            if (angleToEnemy <= coneAngle / 2)
+            if (angleToEnemy <= coneAngle / 2 && distanceToEnemy <= coneLength)
             {
-                // Check line of sight
                 RaycastHit2D losCheck = Physics2D.Raycast(
                     transform.position,
                     directionToEnemy.normalized,
-                    directionToEnemy.magnitude,
+                    distanceToEnemy,
                     obstacleLayer
                 );
                 
                 if (losCheck.collider == null || losCheck.collider.gameObject == hit.gameObject)
                 {
                     BaseEnemy enemy = hit.GetComponent<BaseEnemy>();
-                    if (enemy != null)
+                    if (enemy != null && !enemy.IsDead)
                     {
-                        enemiesInLight.Add(enemy);
+                        newEnemiesInLight.Add(enemy);
                         
-                        // Reveal enemy
                         if (!enemy.IsRevealed)
                         {
                             enemy.Reveal();
@@ -235,96 +148,45 @@ public class Flashlight : MonoBehaviour, IRechargeable
                 }
             }
         }
+        
+        enemiesInLight = newEnemiesInLight;
     }
     
-    public void DamageEnemiesInLight()
+    void ApplyDamageToEnemies()
     {
-        if (!isActive || currentCharge <= 0 || owner == null) return;
+        if (owner == null || enemiesInLight.Count == 0) return;
+        
+        float damagePerUpdate = (damagePerSecond * detectionUpdateRate) * damageMultiplier;
         
         foreach (BaseEnemy enemy in enemiesInLight)
         {
             if (enemy != null && !enemy.IsDead)
             {
-                // Calculate damage based on distance (more damage up close)
                 float distance = Vector2.Distance(transform.position, enemy.transform.position);
                 float distanceMultiplier = Mathf.Clamp01(1f - (distance / coneLength));
                 
-                float damage = owner.FlashlightRevealDamage * damageMultiplier * Time.deltaTime;
+                float finalDamage = damagePerUpdate * distanceMultiplier;
                 
-                // Apply damage
-                enemy.TakeDamage(damage);
+                Debug.Log($"Damaging {enemy.name}: {finalDamage:F2} damage (DPS: {damagePerSecond}, Update: {damagePerUpdate:F2}, Dist: {distance:F1}, Multiplier: {distanceMultiplier:F2})");
                 
-                // Visual feedback
-                enemy.FlashlightHit(transform.position);
+                enemy.TakeDamage(finalDamage);
             }
         }
     }
-    
-    #region IRechargeable Implementation
-    
-    public void Recharge(float amount)
-    {
-        if (amount <= 0 || IsFullyCharged) return;
-        
-        float oldCharge = currentCharge;
-        CurrentCharge += amount;
-        float actualRecharge = currentCharge - oldCharge;
-        
-        OnChargeChanged?.Invoke(currentCharge);
-        
-        if (IsFullyCharged)
-        {
-            OnFullyCharged?.Invoke();
-        }
-    }
-    
-    public void ConsumeCharge(float amount)
-    {
-        if (amount <= 0 || currentCharge <= 0) return;
-        
-        float oldCharge = currentCharge;
-        CurrentCharge -= amount;
-        float actualConsumed = oldCharge - currentCharge;
-        
-        OnChargeChanged?.Invoke(currentCharge);
-        OnChargeConsumed?.Invoke(actualConsumed);
-    }
-    
-    public void SetMaxCharge(float newMax)
-    {
-        if (newMax <= 0) return;
-        
-        float percentage = currentCharge / maxCharge;
-        MaxCharge = newMax;
-        CurrentCharge = maxCharge * percentage;
-        
-        OnChargeChanged?.Invoke(currentCharge);
-    }
-    
-    #endregion
-    
-    #region Public Methods
     
     public void SetActive(bool active)
     {
         isActive = active;
         
-        if (!active && flashlightParticles != null)
+        if (!active)
         {
-            flashlightParticles.Stop();
+            enemiesInLight.Clear();
         }
     }
     
     public void SetOwner(PlayerController player)
     {
         owner = player;
-        
-        // Sync battery with owner
-        if (owner != null)
-        {
-            maxCharge = owner.MaxCharge;
-            currentCharge = owner.CurrentCharge;
-        }
     }
     
     public void SetConeAngle(float angle)
@@ -339,9 +201,12 @@ public class Flashlight : MonoBehaviour, IRechargeable
         CreateFlashlightMesh();
     }
     
-    public List<BaseEnemy> GetEnemiesInLight() => new List<BaseEnemy>(enemiesInLight);
+    public void SetDamage(float newDamagePerSecond)
+    {
+        damagePerSecond = Mathf.Max(0, newDamagePerSecond);
+    }
     
-    #endregion
+    public List<BaseEnemy> GetEnemiesInLight() => new List<BaseEnemy>(enemiesInLight);
     
     #region Gizmos
     
@@ -360,7 +225,6 @@ public class Flashlight : MonoBehaviour, IRechargeable
             Gizmos.DrawRay(transform.position, direction * coneLength);
         }
         
-        // Draw enemies in light
         Gizmos.color = Color.red;
         foreach (BaseEnemy enemy in enemiesInLight)
         {

@@ -3,37 +3,43 @@ using UnityEngine;
 public class WinItem : MonoBehaviour
 {
     [Header("Win Item Settings")]
-    [SerializeField] private string itemName = "Key";
+    [SerializeField] private string itemName = "Light Shard";
     
-    [Header("Visuals")]
+    [Header("Visual Effects")]
     [SerializeField] private float rotationSpeed = 45f;
-    [SerializeField] private float pulseSpeed = 2f;
-    [SerializeField] private float minScale = 0.9f;
-    [SerializeField] private float maxScale = 1.1f;
+    [SerializeField] private float floatHeight = 0.3f;
+    [SerializeField] private float floatSpeed = 2f;
+    [SerializeField] private Color glowColor = Color.yellow;
+    [SerializeField] private float glowIntensity = 2f;
     
+    private Vector3 startPosition;
     private SpriteRenderer spriteRenderer;
     
     void Start()
     {
+        startPosition = transform.position;
         spriteRenderer = GetComponent<SpriteRenderer>();
+        
         gameObject.tag = "WinItem";
+        
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = glowColor;
+        }
     }
     
     void Update()
     {
-        // Rotate
-        transform.Rotate(0, 0, rotationSpeed * Time.deltaTime);
+        transform.Rotate(0, rotationSpeed * Time.deltaTime, 0);
         
-        // Pulse scale
-        float pulse = Mathf.PingPong(Time.time * pulseSpeed, 1f);
-        float scale = Mathf.Lerp(minScale, maxScale, pulse);
-        transform.localScale = new Vector3(scale, scale, 1);
+        float newY = startPosition.y + Mathf.Sin(Time.time * floatSpeed) * floatHeight;
+        transform.position = new Vector3(transform.position.x, newY, transform.position.z);
         
-        // Pulse color (optional gold glow)
         if (spriteRenderer != null)
         {
-            float colorPulse = Mathf.Sin(Time.time * 2f) * 0.3f + 0.7f;
-            spriteRenderer.color = new Color(1f, 0.84f, 0f, colorPulse);
+            float pulse = Mathf.PingPong(Time.time * 2f, 1f);
+            Color pulseColor = glowColor * (1 + pulse * glowIntensity);
+            spriteRenderer.color = pulseColor;
         }
     }
     
@@ -45,8 +51,13 @@ public class WinItem : MonoBehaviour
             if (player != null)
             {
                 Debug.Log($"Collected {itemName}!");
-                // PlayerController handles the actual collection
             }
         }
+    }
+    
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, 0.5f);
     }
 }

@@ -4,7 +4,7 @@ using System.Collections;
 public class Crawler : BaseEnemy
 {
     [Header("Crawler Specific Settings")]
-    [SerializeField] private float armor = 10f;
+    [SerializeField] private float armor = 1f;
     [SerializeField] private float slowAuraRange = 3f;
     [SerializeField] private float slowEffect = 0.3f;
     [SerializeField] private float groundPoundCooldown = 8f;
@@ -21,7 +21,6 @@ public class Crawler : BaseEnemy
     {
         base.Start();
         
-        // Crawler is tankier by default
         maxHealth *= 2.5f;
         currentHealth = maxHealth;
         moveSpeed *= 0.4f;
@@ -159,6 +158,7 @@ public class Crawler : BaseEnemy
             if (player != null)
             {
                 player.Stun(1f);
+                
                 Vector2 knockbackDirection = (hit.transform.position - transform.position).normalized;
                 player.ApplyKnockback(knockbackDirection, 10f);
             }
@@ -177,18 +177,10 @@ public class Crawler : BaseEnemy
         if (playerController == null) return;
         
         affectedPlayer = playerController;
-        float originalSpeed = 8f;
+        
+        float originalSpeed = 8f; 
         float slowedSpeed = originalSpeed * (1f - slowEffect);
         playerController.SetMoveSpeed(slowedSpeed);
-        
-        if (playerController.playerSprite != null)
-        {
-            playerController.playerSprite.color = Color.Lerp(
-                playerController.playerSprite.color, 
-                Color.blue, 
-                0.3f
-            );
-        }
     }
     
     private void RemoveSlowAura()
@@ -197,18 +189,36 @@ public class Crawler : BaseEnemy
         
         affectedPlayer.ResetMoveSpeed();
         
-        if (affectedPlayer.playerSprite != null)
-        {
-            affectedPlayer.playerSprite.color = Color.white;
-        }
-        
         affectedPlayer = null;
     }
     
     public override void TakeDamage(float damage)
     {
+        if (IsDead || damage <= 0) return;
+        
         float reducedDamage = Mathf.Max(0, damage - armor);
+        
         base.TakeDamage(reducedDamage);
+        
+        if (armor > 0 && damage > 0)
+        {
+            StartCoroutine(FlashArmorEffect());
+        }
+    }
+    
+    private IEnumerator FlashArmorEffect()
+    {
+        if (spriteRenderer == null) yield break;
+        
+        Color original = spriteRenderer.color;
+        spriteRenderer.color = Color.white;
+        
+        yield return new WaitForSeconds(0.1f);
+        
+        if (!IsDead)
+        {
+            spriteRenderer.color = isRevealed ? revealedColor : hiddenColor;
+        }
     }
     
     protected override void Die()
@@ -217,6 +227,10 @@ public class Crawler : BaseEnemy
         {
             RemoveSlowAura();
         }
+        
+        isChargingGroundPound = false;
+        isPerformingGroundPound = false;
+        
         base.Die();
     }
     

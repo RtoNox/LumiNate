@@ -27,14 +27,12 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     [SerializeField] protected float flashlightDamageMultiplier = 1f;
     [SerializeField] protected float flashlightHitDuration = 0.2f;
     
-    // Components
     protected SpriteRenderer spriteRenderer;
     protected Rigidbody2D rb;
     protected Transform playerTransform;
     protected PlayerController playerController;
     protected Animator animator;
     
-    // State
     protected float currentHealth;
     protected bool isRevealed = false;
     protected float revealTimer = 0f;
@@ -45,14 +43,12 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     protected float flashlightHitTimer = 0f;
     protected bool isChasing = false;
     
-    // Movement
     protected Vector2 movementDirection;
     protected bool isMoving = false;
     protected Vector2 wanderDirection;
     protected float wanderTimer = 0f;
     protected float wanderChangeTime = 2f;
     
-    // Events
     public event System.Action<float> OnDamageTaken;
     public event System.Action<float> OnHealed;
     public event System.Action OnDeath;
@@ -62,7 +58,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     public event System.Action<int> OnWaveCompleted;
     public event System.Action<int> OnWaveFailed;
     
-    // Interface Properties
     public float CurrentHealth { get => currentHealth; protected set => currentHealth = Mathf.Clamp(value, 0, maxHealth); }
     public float MaxHealth { get => maxHealth; protected set => maxHealth = Mathf.Max(0, value); }
     public bool IsDead { get => currentHealth <= 0; }
@@ -75,10 +70,8 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     public bool IsActive => isActive;
     public bool IsCompleted => isCompleted;
     
-    // Public properties
     protected int waveNumber = 1;
     
-    // Properties for child classes
     protected Transform PlayerTransform => playerTransform;
     protected PlayerController PlayerController => playerController;
     protected bool IsPlayerInRange => playerTransform != null && 
@@ -130,7 +123,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
             animator.SetBool("IsActive", isActive);
         }
         
-        // Start wandering
         SetRandomWanderDirection();
     }
     
@@ -143,7 +135,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         UpdateFlashlightHit();
         UpdateWander();
         
-        // Check if player is in range and has line of sight
         if (playerTransform != null)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
@@ -161,12 +152,10 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         }
         else
         {
-            // If player is null, try to find them
             FindPlayer();
             Wander();
         }
         
-        // Update movement based on state
         if (isChasing)
         {
             ChaseBehavior();
@@ -220,7 +209,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     {
         if (flashlightHitTimer > 0)
         {
-            // Flash white when hit by flashlight
             float t = flashlightHitTimer / flashlightHitDuration;
             spriteRenderer.color = Color.Lerp(currentColor, flashlightHitColor, t);
         }
@@ -286,18 +274,15 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         
         float currentSpeed = isChasing ? chaseSpeed : moveSpeed;
         
-        // Apply movement
         if (rb != null)
         {
             rb.velocity = movementDirection * currentSpeed;
         }
         else
         {
-            // Fallback if no rigidbody
             transform.position += (Vector3)movementDirection * currentSpeed * Time.fixedDeltaTime;
         }
         
-        // Flip sprite based on movement direction
         if (spriteRenderer != null && Mathf.Abs(movementDirection.x) > 0.1f)
         {
             spriteRenderer.flipX = movementDirection.x < 0;
@@ -368,7 +353,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         CurrentHealth -= damage;
         float actualDamage = oldHealth - currentHealth;
         
-        // Trigger reveal if not already revealed
         if (!isRevealed)
         {
             Reveal();
@@ -403,21 +387,18 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         OnHealed?.Invoke(actualHeal);
     }
     
-    // Called when hit by flashlight
     public virtual void FlashlightHit(Vector3 sourcePosition)
     {
         if (IsDead) return;
         
         flashlightHitTimer = flashlightHitDuration;
         
-        // Take extra damage from flashlight
         if (playerController != null)
         {
             float damage = playerController.FlashlightRevealDamage * flashlightDamageMultiplier * Time.deltaTime;
             TakeDamage(damage);
         }
         
-        // Reveal if not already revealed
         if (!isRevealed)
         {
             Reveal();
@@ -429,37 +410,31 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
         isActive = false;
         isMoving = false;
         
-        // Disable physics
         if (rb != null)
         {
             rb.velocity = Vector2.zero;
             rb.isKinematic = true;
         }
         
-        // Visual feedback
         spriteRenderer.color = Color.gray;
         
-        // Play death animation
         if (animator != null)
         {
             animator.SetBool("IsDead", true);
             animator.SetTrigger("Die");
         }
         
-        // Disable collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
             collider.enabled = false;
         
         OnDeath?.Invoke();
         
-        // Mark wave as completed
         if (isActive && !isCompleted)
         {
             CompleteWave();
         }
         
-        // Destroy after delay
         Destroy(gameObject, 2f);
     }
     
@@ -509,10 +484,9 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     public virtual void InitializeWave(int waveNum)
     {
         waveNumber = waveNum;
-        isActive = true; // Ensure enemy is active
+        isActive = true;
         isCompleted = false;
         
-        // Scale stats based on wave number
         float waveMultiplier = 1 + (waveNumber * 0.1f);
         maxHealth *= waveMultiplier;
         currentHealth = maxHealth;
@@ -595,15 +569,12 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     
     protected virtual void OnDrawGizmosSelected()
     {
-        // Draw detection range
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
         
-        // Draw chase range
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, chaseRange);
         
-        // Draw line to player if in range
         if (playerTransform != null)
         {
             float distance = Vector2.Distance(transform.position, playerTransform.position);
@@ -613,13 +584,11 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
                 Gizmos.color = hasLOS ? Color.green : Color.yellow;
                 Gizmos.DrawLine(transform.position, playerTransform.position);
                 
-                // Draw LOS status
                 Gizmos.color = hasLOS ? Color.green : Color.red;
                 Gizmos.DrawSphere(transform.position, 0.3f);
             }
         }
         
-        // Draw movement direction
         if (Application.isPlaying && isMoving)
         {
             Gizmos.color = Color.blue;

@@ -99,9 +99,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c27944e8444cb04e85c51144fcb3929, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 50
-  moveSpeed: 3
-  chaseSpeed: 5
+  maxHealth: 11
+  moveSpeed: 1
+  chaseSpeed: 1
   damageOnContact: 10
   attackCooldown: 1
   baseRevealDuration: 3
@@ -118,7 +118,7 @@ MonoBehaviour:
     m_Bits: 0
   flashlightDamageMultiplier: 1
   flashlightHitDuration: 0.2
-  armor: 10
+  armor: 1
   slowAuraRange: 3
   slowEffect: 0.3
   groundPoundCooldown: 8

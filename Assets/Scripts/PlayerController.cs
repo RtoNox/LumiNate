@@ -13,16 +13,20 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float currentHealth = 100f;
-    [SerializeField] private float healthRegenRate = 2f; // 2 HP per second
-    [SerializeField] private float healthRegenDelay = 3f; // 3 seconds before regen starts
+    [SerializeField] private float healthRegenRate = 2f;
+    [SerializeField] private float healthRegenDelay = 3f;
     [SerializeField] private bool isInvulnerable = false;
     [SerializeField] private float invulnerabilityDuration = 1f;
     
     [Header("Battery Settings")]
     [SerializeField] private float maxBattery = 100f;
     [SerializeField] private float currentBattery = 100f;
-    [SerializeField] private float batteryDrainRate = 8f; // Per second when flashlight on
-    [SerializeField] private float batteryRechargeRate = 15f; // Per second when flashlight off
+    [SerializeField] private float batteryDrainRate = 8f;
+    [SerializeField] private float batteryRechargeRate = 15f;
+    
+    [Header("Win Condition")]
+    [SerializeField] private int requiredWinItems = 1;
+    private int collectedWinItems = 0;
     
     [Header("References")]
     [SerializeField] private Transform flashlightPivot;
@@ -32,8 +36,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     [SerializeField] private Animator playerAnimator;
     
     [Header("Flashlight Settings")]
-    [SerializeField] private float flashlightRevealDamage = 10f; // Damage per second to enemies in light
-    [SerializeField] private float flashlightDamageInterval = 0.2f; // How often to damage enemies
+    [SerializeField] private float flashlightRevealDamage = 10f;
     
     [Header("Visual Feedback")]
     [SerializeField] private ParticleSystem damageParticles;
@@ -50,8 +53,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     [SerializeField] private AudioClip batteryLowSound;
     [SerializeField] private AudioClip flashlightToggleSound;
     [SerializeField] private AudioClip deathSound;
+    [SerializeField] private AudioClip winItemPickupSound;
     
-    // Components
     private Rigidbody2D rb;
     private AudioSource audioSource;
     private Vector2 movementInput;
@@ -61,23 +64,21 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     private float invulnerabilityTimer = 0f;
     private float flashlightDamageTimer = 0f;
     
-    // Health Regen
-    private float damageTakenTimer = 0f; // Timer for regeneration delay
+    private float damageTakenTimer = 0f;
     private bool isRegenerating = false;
     
-    // Battery
-    private float batteryRechargeDelay = 1f; // Delay before recharging starts
+    private float batteryRechargeDelay = 1f;
     private float batteryRechargeTimer = 0f;
-    private bool isFlashlightOn = true;
+    private bool isFlashlightOn = false;
     private bool isBatteryLow = false;
     private bool isBatteryDead = false;
     
-    // Movement lock
     private bool isMovementLocked = false;
     private bool isStunned = false;
     private float stunTimer = 0f;
     
-    // Events
+    private bool hasWon = false;
+    
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
     public event Action OnDeath;
@@ -89,8 +90,9 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     public event Action OnBatteryRestored;
     public event Action<bool> OnFlashlightToggled;
     public event Action<bool> OnRegenerationStateChanged;
+    public event Action<int> OnWinItemCollected;
+    public event Action OnWinConditionMet;
     
-    // Interface Properties
     public float CurrentHealth { get => currentHealth; private set => currentHealth = Mathf.Clamp(value, 0, maxHealth); }
     public float MaxHealth { get => maxHealth; private set => maxHealth = Mathf.Max(0, value); }
     public bool IsDead { get => currentHealth <= 0; }
@@ -99,8 +101,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     public float MaxCharge { get => maxBattery; private set => maxBattery = Mathf.Max(0, value); }
     public bool IsFullyCharged { get => currentBattery >= maxBattery; }
     
-    // Public Properties
-    public bool IsMovementLocked => isMovementLocked || isStunned || IsDead;
+    public bool IsMovementLocked => isMovementLocked || isStunned || IsDead || hasWon;
     public bool IsFlashlightOn => isFlashlightOn;
     public float BatteryPercentage => currentBattery / maxBattery;
     public float HealthPercentage => currentHealth / maxHealth;
@@ -109,6 +110,9 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     public Rigidbody2D Rigidbody => rb;
     public float FlashlightRevealDamage => flashlightRevealDamage;
     public bool IsRegenerating => isRegenerating;
+    public int CollectedWinItems => collectedWinItems;
+    public int RequiredWinItems => requiredWinItems;
+    public bool HasWon => hasWon;
     
     void Awake()
     {
@@ -123,26 +127,20 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void Start()
     {
-        // Initialize stats
         currentHealth = maxHealth;
         currentBattery = maxBattery;
         originalColor = playerSprite != null ? playerSprite.color : Color.white;
         
-        // Setup flashlight reference if not assigned
         if (flashlight == null && flashlightPivot != null)
         {
             flashlight = flashlightPivot.GetComponentInChildren<Flashlight>();
         }
         
-        // Initialize flashlight
         if (flashlight != null)
         {
             flashlight.SetOwner(this);
             flashlight.SetActive(isFlashlightOn);
         }
-        
-        // Start with flashlight on
-        TurnFlashlightOn();
     }
     
     void InitializeComponents()
@@ -155,7 +153,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
                 GameObject pivotObj = new GameObject("FlashlightPivot");
                 flashlightPivot = pivotObj.transform;
                 flashlightPivot.SetParent(transform);
-                flashlightPivot.localPosition = new Vector3(0.3f, 0, 0); // Slight offset
+                flashlightPivot.localPosition = new Vector3(0.3f, 0, 0);
             }
         }
         
@@ -174,7 +172,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void Update()
     {
-        if (IsDead) return;
+        if (IsDead || hasWon) return;
         
         HandleInput();
         UpdateTimers();
@@ -183,12 +181,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         HandleFlash();
         RotateFlashlight();
         UpdateAnimations();
-        
-        // Apply flashlight damage to enemies
-        if (isFlashlightOn && flashlight != null && flashlight.IsActive)
-        {
-            ApplyFlashlightDamage();
-        }
     }
     
     void FixedUpdate()
@@ -199,7 +191,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         }
         else
         {
-            // Stop movement when locked
             if (rb != null)
                 rb.velocity = Vector2.zero;
         }
@@ -207,7 +198,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void HandleInput()
     {
-        // Movement input
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         
@@ -216,17 +206,21 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (movementInput.magnitude > 1f)
             movementInput.Normalize();
         
-        // Toggle flashlight
         if (Input.GetKeyDown(KeyCode.F) && !isMovementLocked)
         {
             ToggleFlashlight();
         }
         
-        // Debug/testing keys
-        if (Input.GetKeyDown(KeyCode.R))
+        if (Input.GetKeyDown(KeyCode.P))
         {
-            Recharge(20f);
+            TestWinItemPickup();
         }
+    }
+    
+    void TestWinItemPickup()
+    {
+        CollectWinItem();
+        Debug.Log($"Test: Collected win item! {collectedWinItems}/{requiredWinItems}");
     }
     
     void UpdateTimers()
@@ -238,31 +232,25 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (flashlightDamageTimer > 0) flashlightDamageTimer -= Time.deltaTime;
         if (damageTakenTimer > 0) damageTakenTimer -= Time.deltaTime;
         
-        // Update invulnerability state
         isInvulnerable = invulnerabilityTimer > 0;
         
-        // Update stun state
         if (stunTimer <= 0) isStunned = false;
     }
     
     void UpdateHealthRegeneration()
     {
-        // Check if we should start regenerating
-        if (!isRegenerating && damageTakenTimer <= 0 && currentHealth < maxHealth && !IsDead)
+        if (!isRegenerating && damageTakenTimer <= 0 && currentHealth < maxHealth && !IsDead && !hasWon)
         {
             StartRegeneration();
         }
         
-        // Apply regeneration if active
         if (isRegenerating)
         {
             float healAmount = healthRegenRate * Time.deltaTime;
             currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
             
-            // Trigger heal event for UI updates
             OnHealed?.Invoke(healAmount);
             
-            // Stop if fully healed
             if (currentHealth >= maxHealth)
             {
                 StopRegeneration();
@@ -284,7 +272,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void ResetRegenerationTimer()
     {
-        damageTakenTimer = healthRegenDelay; // 3 seconds
+        damageTakenTimer = healthRegenDelay;
         if (isRegenerating)
         {
             StopRegeneration();
@@ -306,7 +294,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         
         rb.velocity = currentVelocity;
         
-        // Flip sprite based on movement
         if (playerSprite != null && Mathf.Abs(movementInput.x) > 0.1f)
         {
             playerSprite.flipX = movementInput.x < 0;
@@ -327,9 +314,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void HandleBattery()
     {
-        if (IsDead) return;
+        if (IsDead || hasWon) return;
         
-        // Drain battery if flashlight is on and active
         if (isFlashlightOn && flashlight != null && flashlight.IsActive && currentBattery > 0)
         {
             float drainAmount = batteryDrainRate * Time.deltaTime;
@@ -339,12 +325,10 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         }
         else if (!isFlashlightOn && !IsFullyCharged && batteryRechargeTimer <= 0)
         {
-            // Recharge when flashlight is off
             float rechargeAmount = batteryRechargeRate * Time.deltaTime;
             Recharge(rechargeAmount);
         }
         
-        // Auto-turn off flashlight if battery dead
         if (currentBattery <= 0 && isFlashlightOn && !isBatteryDead)
         {
             isBatteryDead = true;
@@ -352,7 +336,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
             OnBatteryEmpty?.Invoke();
         }
         
-        // Check for battery warnings
         float batteryPercent = BatteryPercentage;
         if (batteryPercent <= 0.2f && !isBatteryLow && currentBattery > 0)
         {
@@ -380,15 +363,18 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         }
         else if (isRegenerating)
         {
-            // Pulse green when regenerating
             float pulse = Mathf.PingPong(Time.time * 2f, 1f);
             playerSprite.color = Color.Lerp(originalColor, regenColor, pulse * 0.3f);
         }
         else if (isBatteryLow && isFlashlightOn)
         {
-            // Pulse yellow when battery is low
             float pulse = Mathf.PingPong(Time.time * 2f, 1f);
             playerSprite.color = Color.Lerp(originalColor, batteryLowColor, pulse * 0.3f);
+        }
+        else if (hasWon)
+        {
+            float pulse = Mathf.PingPong(Time.time * 3f, 1f);
+            playerSprite.color = Color.Lerp(originalColor, Color.yellow, pulse * 0.5f);
         }
         else
         {
@@ -406,6 +392,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         playerAnimator.SetBool("IsStunned", isStunned);
         playerAnimator.SetBool("FlashlightOn", isFlashlightOn);
         playerAnimator.SetBool("IsRegenerating", isRegenerating);
+        playerAnimator.SetBool("HasWon", hasWon);
         
         if (IsMoving)
         {
@@ -414,24 +401,11 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         }
     }
     
-    void ApplyFlashlightDamage()
-    {
-        if (flashlightDamageTimer > 0) return;
-        
-        if (flashlight != null)
-        {
-            // Let the flashlight handle enemy damage
-            flashlight.DamageEnemiesInLight();
-        }
-        
-        flashlightDamageTimer = flashlightDamageInterval;
-    }
-    
     #region Flashlight Control
     
     public void ToggleFlashlight()
     {
-        if (flashlight == null || isBatteryDead) return;
+        if (flashlight == null || isBatteryDead || hasWon) return;
         
         if (isFlashlightOn)
         {
@@ -442,7 +416,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
             TurnFlashlightOn();
         }
         
-        // Play sound
         if (audioSource != null && flashlightToggleSound != null)
             audioSource.PlayOneShot(flashlightToggleSound, 0.5f);
         
@@ -451,7 +424,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void TurnFlashlightOn()
     {
-        if (flashlight == null || currentBattery <= 0) return;
+        if (flashlight == null || currentBattery <= 0 || hasWon) return;
         
         isFlashlightOn = true;
         if (flashlight != null)
@@ -460,13 +433,12 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void TurnFlashlightOff()
     {
-        if (flashlight == null) return;
+        if (flashlight == null || hasWon) return;
         
         isFlashlightOn = false;
         if (flashlight != null)
             flashlight.SetActive(false);
         
-        // Start recharge timer
         batteryRechargeTimer = batteryRechargeDelay;
     }
     
@@ -478,17 +450,60 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     #endregion
     
+    #region Win Item System
+    
+    public void CollectWinItem()
+    {
+        if (hasWon || IsDead) return;
+        
+        collectedWinItems++;
+        Debug.Log($"Collected win item! {collectedWinItems}/{requiredWinItems}");
+        
+        if (audioSource != null && winItemPickupSound != null)
+            audioSource.PlayOneShot(winItemPickupSound, 0.7f);
+        
+        OnWinItemCollected?.Invoke(collectedWinItems);
+        
+        if (collectedWinItems >= requiredWinItems)
+        {
+            WinGame();
+        }
+    }
+    
+    private void WinGame()
+    {
+        hasWon = true;
+        
+        isMovementLocked = true;
+        if (rb != null)
+            rb.velocity = Vector2.zero;
+        
+        TurnFlashlightOff();
+        
+        StopRegeneration();
+        
+        if (playerSprite != null)
+        {
+            playerSprite.color = Color.yellow;
+        }
+        
+        OnWinConditionMet?.Invoke();
+        
+        Debug.Log("Player won the game!");
+    }
+    
+    #endregion
+    
     #region IDamageable Implementation
     
     public void TakeDamage(float damage)
     {
-        if (IsDead || damage <= 0 || isInvulnerable) return;
+        if (IsDead || damage <= 0 || isInvulnerable || hasWon) return;
         
         float oldHealth = currentHealth;
         CurrentHealth -= damage;
         float actualDamage = oldHealth - currentHealth;
         
-        // Visual feedback
         flashTimer = flashDuration;
         if (playerSprite != null)
             playerSprite.color = damageFlashColor;
@@ -496,27 +511,29 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (damageParticles != null)
             damageParticles.Play();
         
-        // Audio feedback
         if (audioSource != null && damageSound != null)
             audioSource.PlayOneShot(damageSound, 0.7f);
         
-        // Reset regeneration timer when taking damage
         ResetRegenerationTimer();
         
         OnDamageTaken?.Invoke(actualDamage);
         
-        // Apply invulnerability
         invulnerabilityTimer = invulnerabilityDuration;
         
-        if (currentHealth <= 0)
+        if (CurrentHealth <= 0)
         {
-            Die();
+            OnDeath?.Invoke();
+        }
+
+        if (collectedWinItems >= requiredWinItems)
+        {
+            OnWinConditionMet?.Invoke();
         }
     }
     
     public void Heal(float amount)
     {
-        if (IsDead || amount <= 0) return;
+        if (IsDead || amount <= 0 || hasWon) return;
         
         float oldHealth = currentHealth;
         CurrentHealth += amount;
@@ -533,29 +550,23 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     private void Die()
     {
-        // Disable movement
         isMovementLocked = true;
         if (rb != null)
             rb.velocity = Vector2.zero;
         
-        // Visual feedback
         if (playerSprite != null)
             playerSprite.color = Color.gray;
         
-        // Disable flashlight
         TurnFlashlightOff();
         
-        // Stop regeneration
         StopRegeneration();
         
-        // Play death sound
         if (audioSource != null && deathSound != null)
             audioSource.PlayOneShot(deathSound, 1f);
         
         OnDeath?.Invoke();
         
         Debug.Log("Player died!");
-        // Trigger game over
     }
     
     #endregion
@@ -564,7 +575,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void Recharge(float amount)
     {
-        if (amount <= 0 || IsFullyCharged) return;
+        if (amount <= 0 || IsFullyCharged || hasWon) return;
         
         float oldBattery = currentBattery;
         CurrentCharge += amount;
@@ -573,7 +584,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (batteryParticles != null && actualRecharge > 0)
             batteryParticles.Play();
         
-        // Audio feedback for large recharges
         if (actualRecharge > 10f && audioSource != null && batteryLowSound != null)
             audioSource.PlayOneShot(batteryLowSound, 0.3f);
         
@@ -584,7 +594,6 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
             OnFullyCharged?.Invoke();
         }
         
-        // Battery is no longer dead if we recharged
         if (currentBattery > 0 && isBatteryDead)
         {
             isBatteryDead = false;
@@ -593,7 +602,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void ConsumeCharge(float amount)
     {
-        if (amount <= 0) return;
+        if (amount <= 0 || hasWon) return;
         
         float oldBattery = currentBattery;
         CurrentCharge -= amount;
@@ -605,7 +614,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void SetMaxCharge(float newMax)
     {
-        if (newMax <= 0) return;
+        if (newMax <= 0 || hasWon) return;
         
         float percentage = currentBattery / maxBattery;
         MaxCharge = newMax;
@@ -624,19 +633,18 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     public void Stun(float duration)
     {
-        if (IsDead) return;
+        if (IsDead || hasWon) return;
         
         isStunned = true;
         stunTimer = duration;
         
-        // Stop movement
         if (rb != null)
             rb.velocity = Vector2.zero;
     }
     
     public void ApplyKnockback(Vector2 direction, float force)
     {
-        if (rb == null || IsDead) return;
+        if (rb == null || IsDead || hasWon) return;
         
         rb.AddForce(direction.normalized * force, ForceMode2D.Impulse);
     }
@@ -675,16 +683,13 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // Handle enemy collisions
         if (collision.gameObject.CompareTag("Enemy"))
         {
             BaseEnemy enemy = collision.gameObject.GetComponent<BaseEnemy>();
             if (enemy != null && enemy.IsRevealed)
             {
-                // Take damage based on enemy contact
                 TakeDamage(enemy.damageOnContact);
                 
-                // Apply knockback
                 Vector2 knockbackDirection = (transform.position - collision.transform.position).normalized;
                 ApplyKnockback(knockbackDirection, 5f);
             }
@@ -693,13 +698,18 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void OnTriggerEnter2D(Collider2D other)
     {
-        // Handle battery pickups
+        if (hasWon || IsDead) return;
+        
         if (other.CompareTag("BatteryPickup"))
         {
             Recharge(50f);
             Destroy(other.gameObject);
         }
-        // No health pickups - player only regenerates naturally
+        else if (other.CompareTag("WinItem"))
+        {
+            CollectWinItem();
+            Destroy(other.gameObject);
+        }
     }
     
     #endregion
@@ -708,15 +718,31 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void OnGUI()
     {
-        // Debug display
-        GUILayout.BeginArea(new Rect(10, 10, 300, 200));
-        GUILayout.Label($"Health: {currentHealth:F0}/{maxHealth:F0}");
-        GUILayout.Label($"Battery: {currentBattery:F0}/{maxBattery:F0}");
-        GUILayout.Label($"Flashlight: {(isFlashlightOn ? "ON" : "OFF")}");
-        GUILayout.Label($"Regenerating: {isRegenerating}");
-        GUILayout.Label($"Regen Timer: {damageTakenTimer:F1}s");
-        GUILayout.Label($"Invulnerable: {isInvulnerable} ({invulnerabilityTimer:F1})");
-        GUILayout.Label($"Controls: F-Toggle Flashlight");
+        GUILayout.BeginArea(new Rect(10, 10, 300, 250));
+        
+        if (hasWon)
+        {
+            GUILayout.Label("VICTORY!", new GUIStyle() { fontSize = 24, normal = { textColor = Color.yellow }, fontStyle = FontStyle.Bold });
+        }
+        else if (IsDead)
+        {
+            GUILayout.Label("GAME OVER", new GUIStyle() { fontSize = 24, normal = { textColor = Color.red }, fontStyle = FontStyle.Bold });
+        }
+        else
+        {
+            GUILayout.Label($"Health: {currentHealth:F0}/{maxHealth:F0}");
+            GUILayout.Label($"Battery: {currentBattery:F0}/{maxBattery:F0}");
+            GUILayout.Label($"Flashlight: {(isFlashlightOn ? "ON" : "OFF")}");
+            GUILayout.Label($"Win Items: {collectedWinItems}/{requiredWinItems}");
+            GUILayout.Label($"Regen Timer: {damageTakenTimer:F1}s");
+            GUILayout.Label($"Controls: F-Toggle Flashlight");
+            
+            if (isRegenerating)
+            {
+                GUILayout.Label("Regenerating...", new GUIStyle() { normal = { textColor = Color.green } });
+            }
+        }
+        
         GUILayout.EndArea();
     }
     
