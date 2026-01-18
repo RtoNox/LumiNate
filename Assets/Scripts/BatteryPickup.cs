@@ -1,39 +1,80 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BatteryPickup : MonoBehaviour
 {
-    [SerializeField] private float chargeAmount = 25f;
-    [SerializeField] private float rotationSpeed = 50f;
+    [Header("Pickup Settings")]
+    [SerializeField] private float rechargeAmount = 50f;
+    [SerializeField] private float rotationSpeed = 100f;
+    [SerializeField] private float floatHeight = 0.5f;
+    [SerializeField] private float floatSpeed = 2f;
+    
+    [Header("Visual Effects")]
+    [SerializeField] private ParticleSystem pickupParticles;
     [SerializeField] private AudioClip pickupSound;
-    [SerializeField] private float batteryCharge = 25f;
-
-    public float ChargeAmount => chargeAmount;
+    [SerializeField] private Light glowLight;
+    
+    private Vector3 startPosition;
+    private AudioSource audioSource;
+    private bool isCollected = false;
+    
+    void Start()
+    {
+        startPosition = transform.position;
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+    }
     
     void Update()
     {
-        transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime);
-    }
-    
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
+        if (isCollected) return;
+        
+        // Rotate and float
+        transform.Rotate(0, rotationSpeed * Time.deltaTime, 0);
+        
+        float newY = startPosition.y + Mathf.Sin(Time.time * floatSpeed) * floatHeight;
+        transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+        
+        // Pulse light
+        if (glowLight != null)
         {
-            PlayerController player = other.GetComponent<PlayerController>();
-            if (player != null)
-            {
-                player.Battery.AddCharge(chargeAmount);
-                
-                if (pickupSound != null)
-                    AudioSource.PlayClipAtPoint(pickupSound, transform.position);
-                
-                Destroy(gameObject);
-            }
+            glowLight.intensity = 1f + Mathf.Sin(Time.time * 2f) * 0.5f;
         }
     }
-    public void SetChargeAmount(float amount)
+    
+    void OnTriggerEnter2D(Collider2D other)
     {
-        batteryCharge = amount;
+        if (isCollected || !other.CompareTag("Player")) return;
+        
+        PlayerController player = other.GetComponent<PlayerController>();
+        if (player != null)
+        {
+            // Recharge player battery
+            player.Recharge(rechargeAmount);
+            
+            // Mark as collected
+            isCollected = true;
+            
+            // Visual effects
+            if (pickupParticles != null)
+            {
+                Instantiate(pickupParticles, transform.position, Quaternion.identity);
+            }
+            
+            // Audio
+            if (audioSource != null && pickupSound != null)
+            {
+                audioSource.PlayOneShot(pickupSound);
+            }
+            
+            // Hide the pickup
+            GetComponent<SpriteRenderer>().enabled = false;
+            if (glowLight != null)
+                glowLight.enabled = false;
+            GetComponent<Collider2D>().enabled = false;
+            
+            // Destroy after sound plays
+            Destroy(gameObject, pickupSound != null ? pickupSound.length : 1f);
+        }
     }
 }

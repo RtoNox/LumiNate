@@ -10,11 +10,11 @@ GameObject:
   m_Component:
   - component: {fileID: 8004361031752476270}
   - component: {fileID: 2286413814883398536}
-  - component: {fileID: 7775349742999026401}
   - component: {fileID: 277316780293029412}
+  - component: {fileID: -3197708081837071257}
   m_Layer: 8
   m_Name: CollectibleItem
-  m_TagString: Collectible
+  m_TagString: WinItem
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -79,26 +79,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &7775349742999026401
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3671640397906825925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 672998430996b2548ae85bdfa2c0e537, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rotationSpeed: 30
-  floatSpeed: 1
-  floatAmount: 0.5
-  itemLight: {fileID: 0}
-  itemColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  collectSound: {fileID: 8300000, guid: b5f6ec9faf4509840bb704e9e78e1aa7, type: 3}
-  collectVolume: 1
-  collectParticles: {fileID: 0}
 --- !u!212 &277316780293029412
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -151,3 +131,20 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &-3197708081837071257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3671640397906825925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e709bf96ceada4b489cb167a263b0843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemName: Key
+  rotationSpeed: 3
+  pulseSpeed: 0.3
+  minScale: 0.4
+  maxScale: 0.6
