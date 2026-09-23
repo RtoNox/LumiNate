@@ -2039,7 +2039,7 @@ MonoBehaviour:
   requiredWinItems: 50
   flashlightPivot: {fileID: 1840282954}
   mainCamera: {fileID: 2068671360}
-  flashlight: {fileID: 1467946749}
+  flashlight: {fileID: 0}
   playerSprite: {fileID: 0}
   playerAnimator: {fileID: 0}
   flashlightRevealDamage: 20
@@ -2476,9 +2476,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1467946747}
   - component: {fileID: 1467946748}
-  - component: {fileID: 1467946749}
   m_Layer: 6
-  m_Name: Flashlight
+  m_Name: Light
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2538,7 +2537,7 @@ MonoBehaviour:
   m_PointLightInnerAngle: 30
   m_PointLightOuterAngle: 60
   m_PointLightInnerRadius: 0
-  m_PointLightOuterRadius: 32
+  m_PointLightOuterRadius: 10
   m_ShapeLightParametricSides: 5
   m_ShapeLightParametricAngleOffset: 0
   m_ShapeLightParametricRadius: 1
@@ -2549,30 +2548,6 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!114 &1467946749
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1467946746}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 339498984eec65b4caf495b70561f05a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  coneAngle: 60
-  coneLength: 32
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  detectionUpdateRate: 0.2
-  damagePerSecond: 10
-  damageMultiplier: 1
-  flashlightLight: {fileID: 1467946748}
 --- !u!1 &1613513138
 GameObject:
   m_ObjectHideFlags: 0
@@ -3009,8 +2984,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1840282954}
+  - component: {fileID: 1840282955}
   m_Layer: 6
-  m_Name: FlashlightPivot
+  m_Name: Flashlight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3032,6 +3008,30 @@ Transform:
   - {fileID: 1467946747}
   m_Father: {fileID: 1375877953}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1840282955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1840282953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 339498984eec65b4caf495b70561f05a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  coneAngle: 60
+  coneLength: 10
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  detectionUpdateRate: 0.2
+  damagePerSecond: 10
+  damageMultiplier: 1
+  flashlightLight: {fileID: 1467946748}
 --- !u!1 &1852901607
 GameObject:
   m_ObjectHideFlags: 0
