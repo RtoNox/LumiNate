@@ -435,7 +435,6 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
             CompleteWave();
         }
         
-        Debug.Log($"{gameObject.name} has died.");
         Destroy(gameObject, 2f);
     }
     
