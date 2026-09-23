@@ -1,12 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Rendering.Universal;
 
 public class Flashlight : MonoBehaviour
 {
     [Header("Flashlight Settings")]
     [SerializeField] private float coneAngle = 60f;
     [SerializeField] private float coneLength = 8f;
-    [SerializeField] private Gradient coneGradient;
     
     [Header("Detection")]
     [SerializeField] private LayerMask enemyLayer;
@@ -18,11 +18,9 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private float damageMultiplier = 1f;
     
     [Header("References")]
+    [SerializeField] private Light2D flashlightLight;
+
     private PlayerController owner;
-        private Mesh mesh;
-    private MeshFilter meshFilter;
-    private MeshRenderer meshRenderer;
-    
     private bool isActive = true;
     private float lastDetectionTime;
     private List<BaseEnemy> enemiesInLight = new List<BaseEnemy>();
@@ -31,21 +29,23 @@ public class Flashlight : MonoBehaviour
     
     void Start()
     {
-        InitializeComponents();
-        CreateFlashlightMesh();
-        
-        Material material = new Material(Shader.Find("Sprites/Default"));
-        meshRenderer.material = material;
-        
         if (owner == null)
         {
             owner = GetComponentInParent<PlayerController>();
         }
+
+        if (flashlightLight == null) 
+        {
+            flashlightLight = GetComponent<Light2D>(); 
+        }
+
+        UpdateLightSettings(); 
+        UpdateLightVisibility();
     }
     
     void Update()
     {
-        UpdateMeshVisibility();
+        UpdateLightVisibility();
         
         if (isActive && owner != null && owner.IsFlashlightOn)
         {
@@ -61,55 +61,30 @@ public class Flashlight : MonoBehaviour
             enemiesInLight.Clear();
         }
     }
-    
-    void InitializeComponents()
+
+    void UpdateLightVisibility()
     {
-        meshFilter = gameObject.AddComponent<MeshFilter>();
-        meshRenderer = gameObject.AddComponent<MeshRenderer>();
-        mesh = new Mesh();
-        meshFilter.mesh = mesh;
-    }
-    
-    void CreateFlashlightMesh()
-    {
-        int rayCount = 30;
-        Vector3[] vertices = new Vector3[rayCount + 2];
-        Color[] colors = new Color[vertices.Length];
-        int[] triangles = new int[rayCount * 3];
-        
-        vertices[0] = Vector3.zero;
-        colors[0] = coneGradient.Evaluate(0);
-        
-        for (int i = 0; i <= rayCount; i++)
+        if (flashlightLight != null)
         {
-            float angle = -coneAngle / 2 + (coneAngle / rayCount) * i;
-            Vector3 direction = Quaternion.Euler(0, 0, angle) * Vector3.right;
-            
-            vertices[i + 1] = direction * coneLength;
-            
-            float t = (float)i / rayCount;
-            colors[i + 1] = coneGradient.Evaluate(t);
-            
-            if (i < rayCount)
-            {
-                triangles[i * 3] = 0;
-                triangles[i * 3 + 1] = i + 1;
-                triangles[i * 3 + 2] = i + 2;
-            }
+            bool shouldbeVisible =
+            isActive &&
+            owner != null &&
+            owner.IsFlashlightOn &&
+            owner.CurrentCharge > 0;
+
+            flashlightLight.enabled = shouldbeVisible;
         }
-        
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.colors = colors;
-        mesh.RecalculateNormals();
     }
-    
-    void UpdateMeshVisibility()
+
+    void UpdateLightSettings()
     {
-        bool shouldBeVisible = isActive && owner != null && owner.IsFlashlightOn && owner.CurrentCharge > 0;
-        meshRenderer.enabled = shouldBeVisible;
+        if (flashlightLight != null)
+        {
+            flashlightLight.pointLightOuterAngle = coneAngle;
+            flashlightLight.pointLightOuterRadius = coneLength;
+        }
     }
-    
+
     void DetectEnemies()
     {
         List<BaseEnemy> newEnemiesInLight = new List<BaseEnemy>();
@@ -182,23 +157,26 @@ public class Flashlight : MonoBehaviour
         {
             enemiesInLight.Clear();
         }
+
+        UpdateLightVisibility();
     }
     
     public void SetOwner(PlayerController player)
     {
         owner = player;
+        UpdateLightVisibility();
     }
     
     public void SetConeAngle(float angle)
     {
         coneAngle = Mathf.Clamp(angle, 10f, 120f);
-        CreateFlashlightMesh();
+        UpdateLightSettings();
     }
     
     public void SetConeLength(float length)
     {
         coneLength = Mathf.Clamp(length, 2f, 20f);
-        CreateFlashlightMesh();
+        UpdateLightSettings();
     }
     
     public void SetDamage(float newDamagePerSecond)
@@ -207,25 +185,27 @@ public class Flashlight : MonoBehaviour
     }
     
     public List<BaseEnemy> GetEnemiesInLight() => new List<BaseEnemy>(enemiesInLight);
-    
+
     #region Gizmos
-    
     void OnDrawGizmosSelected()
     {
-        if (!Application.isPlaying) return;
-        
+        if (!Application.isPlaying)
+            return;
+
         Gizmos.color = Color.yellow;
+
         int segments = 20;
         float angleStep = coneAngle / segments;
-        
+
         for (int i = 0; i <= segments; i++)
         {
             float angle = -coneAngle / 2 + angleStep * i;
             Vector3 direction = Quaternion.Euler(0, 0, angle) * transform.right;
             Gizmos.DrawRay(transform.position, direction * coneLength);
         }
-        
+
         Gizmos.color = Color.red;
+
         foreach (BaseEnemy enemy in enemiesInLight)
         {
             if (enemy != null)
@@ -234,6 +214,6 @@ public class Flashlight : MonoBehaviour
             }
         }
     }
-    
+
     #endregion
 }
