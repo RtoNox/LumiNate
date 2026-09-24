@@ -102,7 +102,9 @@ public class EnvironmentSpawner : MonoBehaviour
     {
         if (commonLootPrefabs.Count == 0) return;
 
-        GameObject prefab = commonLootPrefabs[0];
+        int randomIndex = Random.Range(0, commonLootPrefabs.Count);
+
+        GameObject prefab = commonLootPrefabs[randomIndex];
         if (prefab == null)
         {
             Debug.LogError("Prefab is null!");
