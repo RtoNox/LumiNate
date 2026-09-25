@@ -19,6 +19,7 @@ public class Flashlight : MonoBehaviour
     
     [Header("References")]
     [SerializeField] private Light2D flashlightLight;
+    [SerializeField] private ParticleSystem flashlightFX;
 
     private PlayerController owner;
     private bool isActive = true;
@@ -73,6 +74,7 @@ public class Flashlight : MonoBehaviour
             owner.CurrentCharge > 0;
 
             flashlightLight.enabled = shouldbeVisible;
+            flashlightFX.gameObject.SetActive(shouldbeVisible);
         }
     }
 
