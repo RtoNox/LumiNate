@@ -74,7 +74,7 @@ public class Flashlight : MonoBehaviour
             owner.CurrentCharge > 0;
 
             flashlightLight.enabled = shouldbeVisible;
-            flashlightFX.gameObject.SetActive(shouldbeVisible);
+            flashlightFX.(shouldbeVisible);
         }
     }
 
