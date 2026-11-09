@@ -4,19 +4,7 @@ using System.Collections;
 public class Crawler : BaseEnemy
 {
     private PlayerController affectedPlayer;
-    
-    protected override void Start()
-    {
-        base.Start();
-    }
-    
-    protected override void Update()
-    {
-        base.Update();
-        
-        if (IsDead || !isActive) return;
-    }
-    
+
     protected override void ChaseBehavior()
     {
         if (playerTransform != null)
