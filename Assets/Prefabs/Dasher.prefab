@@ -99,9 +99,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18cb1470666b37140bb06d1cc69cb6f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 50
-  moveSpeed: 1
-  chaseSpeed: 1
+  maxHealth: 20
+  moveSpeed: 2
+  chaseSpeed: 3
   damageOnContact: 10
   attackCooldown: 1
   baseRevealDuration: 3
@@ -118,7 +118,7 @@ MonoBehaviour:
     m_Bits: 0
   flashlightDamageMultiplier: 1
   flashlightHitDuration: 0.2
-  dashSpeed: 10
+  dashSpeed: 20
   dashDuration: 0.5
   dashCooldown: 3
   dashWindupTime: 0.5

@@ -12973,7 +12973,7 @@ MonoBehaviour:
   spawnDistanceFromCamera: 12
   minDistanceBetweenSpawns: 3
   enemyTypes:
-  - enemyPrefab: {fileID: 6490758351114895272, guid: a5f10db8068fa5042aada8132fb169ef, type: 3}
+  - enemyPrefab: {fileID: 6490758351114895272, guid: 33465fea959dbba499c5ca3e689b0336, type: 3}
     baseCount: 5
     baseSpawnRate: 0.5
     quantityMultiplier: 1.1

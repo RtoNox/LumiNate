@@ -30,11 +30,6 @@ public class Dasher : BaseEnemy
     {
         base.Start();
         
-        maxHealth *= 0.4f;
-        currentHealth = maxHealth;
-        moveSpeed *= 2f;
-        chaseSpeed *= 2.5f;
-        
         dashesRemaining = maxDashes;
         dashTimer = Random.Range(0f, 2f);
     }
