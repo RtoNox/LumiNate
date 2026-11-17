@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using UnityEngine.Rendering.Universal;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
@@ -34,6 +35,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     public Flashlight flashlight;
     public SpriteRenderer playerSprite;
     [SerializeField] private Animator playerAnimator;
+    [SerializeField] private Light2D playerLight;
     
     [Header("Flashlight Settings")]
     [SerializeField] private float flashlightRevealDamage = 10f;
@@ -46,7 +48,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     [SerializeField] private Color batteryLowColor = Color.yellow;
     [SerializeField] private Color regenColor = Color.green;
     [SerializeField] private float flashDuration = 0.1f;
-    
+    [SerializeField] private float deathLightFadeDuration = 1f;
+
     [Header("Audio")]
     [SerializeField] private AudioClip damageSound;
     [SerializeField] private AudioClip healSound;
@@ -79,7 +82,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     private float stunTimer = 0f;
     
     private bool hasWon = false;
-    
+    private float deathFadeTimer = 0f;
+
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
     public event Action OnDeath;
@@ -173,6 +177,14 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     
     void Update()
     {
+        if (IsDead && deathFadeTimer > 0)
+        {
+            deathFadeTimer -= Time.deltaTime;
+            float t = Mathf.Clamp01(deathFadeTimer / deathLightFadeDuration);
+            if (playerLight != null)
+                playerLight.intensity = t * 1f;
+        }
+
         if (IsDead || hasWon) return;
         
         HandleInput();
@@ -232,7 +244,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (batteryRechargeTimer > 0) batteryRechargeTimer -= Time.deltaTime;
         if (flashlightDamageTimer > 0) flashlightDamageTimer -= Time.deltaTime;
         if (damageTakenTimer > 0) damageTakenTimer -= Time.deltaTime;
-        
+
         isInvulnerable = invulnerabilityTimer > 0;
         
         if (stunTimer <= 0) isStunned = false;
@@ -555,6 +567,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     private void Die()
     {
         isMovementLocked = true;
+        deathFadeTimer = deathLightFadeDuration;
+
         if (rb != null)
             rb.velocity = Vector2.zero;
 
