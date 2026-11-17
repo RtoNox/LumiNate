@@ -51,6 +51,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     [SerializeField] private AudioClip damageSound;
     [SerializeField] private AudioClip healSound;
     [SerializeField] private AudioClip batteryLowSound;
+    [SerializeField] private AudioClip batteryRechargeSound;
     [SerializeField] private AudioClip flashlightToggleSound;
     [SerializeField] private AudioClip deathSound;
     [SerializeField] private AudioClip winItemPickupSound;
@@ -211,7 +212,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
             ToggleFlashlight();
         }
         
-        if (Input.GetKeyDown(KeyCode.P))
+        if (Input.GetKeyDown(KeyCode.P) && UnityEditor.EditorApplication.isPlaying)
         {
             TestWinItemPickup();
         }
@@ -513,7 +514,10 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         
         if (audioSource != null && damageSound != null)
             audioSource.PlayOneShot(damageSound, 0.7f);
-        
+
+        if (playerAnimator != null)
+            playerAnimator.SetTrigger("DamageTaken");
+
         ResetRegenerationTimer();
         
         OnDamageTaken?.Invoke(actualDamage);
@@ -522,7 +526,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         
         if (CurrentHealth <= 0)
         {
-            OnDeath?.Invoke();
+            Die();
         }
 
         if (collectedWinItems >= requiredWinItems)
@@ -553,10 +557,10 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         isMovementLocked = true;
         if (rb != null)
             rb.velocity = Vector2.zero;
-        
-        if (playerSprite != null)
-            playerSprite.color = Color.gray;
-        
+
+        if (playerAnimator != null)
+            playerAnimator.SetTrigger("Die");
+
         TurnFlashlightOff();
         
         StopRegeneration();
@@ -564,15 +568,18 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (audioSource != null && deathSound != null)
             audioSource.PlayOneShot(deathSound, 1f);
         
-        OnDeath?.Invoke();
-        
         Debug.Log("Player died!");
     }
-    
+
+    public void PlayerDeath()
+    {
+        OnDeath?.Invoke();
+    }
+
     #endregion
-    
+
     #region IRechargeable Implementation
-    
+
     public void Recharge(float amount)
     {
         if (amount <= 0 || IsFullyCharged || hasWon) return;
@@ -584,8 +591,8 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
         if (batteryParticles != null && actualRecharge > 0)
             batteryParticles.Play();
         
-        if (actualRecharge > 10f && audioSource != null && batteryLowSound != null)
-            audioSource.PlayOneShot(batteryLowSound, 0.3f);
+        if (actualRecharge > 10f && audioSource != null && batteryRechargeSound != null)
+            audioSource.PlayOneShot(batteryRechargeSound, 0.3f);
         
         OnChargeChanged?.Invoke(currentBattery);
         

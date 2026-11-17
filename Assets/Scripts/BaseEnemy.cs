@@ -207,12 +207,12 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     
     protected virtual void UpdateColor()
     {
-        if (flashlightHitTimer > 0)
+        if (revealTimer <= 0 && flashlightHitTimer > 0)
         {
             float t = flashlightHitTimer / flashlightHitDuration;
             spriteRenderer.color = Color.Lerp(currentColor, flashlightHitColor, t);
         }
-        else if (isRevealed)
+        else if (isRevealed && revealTimer > 0)
         {
             float t = revealTimer / baseRevealDuration;
             spriteRenderer.color = Color.Lerp(hiddenColor, revealedColor, t);
@@ -435,7 +435,7 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
             CompleteWave();
         }
         
-        Destroy(gameObject, 2f);
+        Destroy(gameObject, 1f);
     }
     
     #endregion

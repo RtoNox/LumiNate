@@ -10,10 +10,11 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private GameObject winPanel;
     
     [Header("Pause Menu Buttons")]
+    [SerializeField] private Button pauseButton;
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button restartButton;
     [SerializeField] private Button mainMenuButton;
-    [SerializeField] private Button quitFromPauseButton;
+    [SerializeField] private Button exitPauseButton;
     
     [Header("Game Over/Win Panel")]
     [SerializeField] private Text titleText;
@@ -37,13 +38,14 @@ public class GameUIManager : MonoBehaviour
         HideAllPanels();
     }
     
-    public void PauseGame()
-    {
-        ShowPauseMenu();
-    }
-
     void SetupButtonListeners()
     {
+        if (pauseButton != null) 
+            pauseButton.onClick.AddListener(() => 
+            {
+                PlaySound(buttonClickSound);
+                GameManager.Instance.PauseGame();
+            });
         if (resumeButton != null) 
             resumeButton.onClick.AddListener(() => 
             {
@@ -65,11 +67,11 @@ public class GameUIManager : MonoBehaviour
                 GameManager.Instance.LoadMainMenu();
             });
             
-        if (quitFromPauseButton != null) 
-            quitFromPauseButton.onClick.AddListener(() => 
+        if (exitPauseButton != null) 
+            exitPauseButton.onClick.AddListener(() => 
             {
                 PlaySound(buttonClickSound);
-                GameManager.Instance.QuitToDesktop();
+                GameManager.Instance.ResumeGame();
             });
         
         if (retryButton != null) 

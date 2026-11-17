@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 public class BatteryPickup : MonoBehaviour
 {
@@ -10,8 +11,7 @@ public class BatteryPickup : MonoBehaviour
     
     [Header("Visual Effects")]
     [SerializeField] private ParticleSystem pickupParticles;
-    [SerializeField] private AudioClip pickupSound;
-    [SerializeField] private Light glowLight;
+    [SerializeField] private Light2D glowLight;
     
     private Vector3 startPosition;
     private AudioSource audioSource;
@@ -20,9 +20,6 @@ public class BatteryPickup : MonoBehaviour
     void Start()
     {
         startPosition = transform.position;
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-            audioSource = gameObject.AddComponent<AudioSource>();
     }
     
     void Update()
@@ -56,17 +53,12 @@ public class BatteryPickup : MonoBehaviour
                 Instantiate(pickupParticles, transform.position, Quaternion.identity);
             }
             
-            if (audioSource != null && pickupSound != null)
-            {
-                audioSource.PlayOneShot(pickupSound);
-            }
-            
             GetComponent<SpriteRenderer>().enabled = false;
             if (glowLight != null)
                 glowLight.enabled = false;
             GetComponent<Collider2D>().enabled = false;
             
-            Destroy(gameObject, pickupSound != null ? pickupSound.length : 1f);
+            Destroy(gameObject);
         }
     }
 }
