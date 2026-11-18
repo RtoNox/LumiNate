@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
     public SpriteRenderer playerSprite;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] private Light2D playerLight;
+    [SerializeField] private ParticleSystem playerGlowParticles;
     
     [Header("Flashlight Settings")]
     [SerializeField] private float flashlightRevealDamage = 10f;
@@ -574,6 +575,9 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
 
         if (playerAnimator != null)
             playerAnimator.SetTrigger("Die");
+
+        if (playerGlowParticles != null)
+            playerGlowParticles.Stop();
 
         TurnFlashlightOff();
         

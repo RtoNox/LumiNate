@@ -207,16 +207,16 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
     
     protected virtual void UpdateColor()
     {
-        if (revealTimer <= 0 && flashlightHitTimer > 0)
-        {
-            float t = flashlightHitTimer / flashlightHitDuration;
-            spriteRenderer.color = Color.Lerp(currentColor, flashlightHitColor, t);
-        }
-        else if (isRevealed && revealTimer > 0)
+        if (isRevealed && revealTimer > 0)
         {
             float t = revealTimer / baseRevealDuration;
             spriteRenderer.color = Color.Lerp(hiddenColor, revealedColor, t);
             currentColor = spriteRenderer.color;
+        }
+        else if (revealTimer <= 0 && flashlightHitTimer > 0)
+        {
+            float t = flashlightHitTimer / flashlightHitDuration;
+            spriteRenderer.color = Color.Lerp(currentColor, flashlightHitColor, t);
         }
         else
         {
@@ -309,7 +309,15 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable, IRevealable, IWave
             OnPlayerContact(collision.gameObject);
         }
     }
-    
+
+    protected virtual void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            OnPlayerContact(other.gameObject);
+        }
+    }
+
     protected virtual IEnumerator AttackCooldown()
     {
         canAttack = false;

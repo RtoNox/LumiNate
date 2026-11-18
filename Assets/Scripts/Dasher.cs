@@ -43,7 +43,14 @@ public class Dasher : BaseEnemy
         UpdateDash();
         UpdateEvasion();
     }
-    
+
+    protected override void FixedUpdate()
+    {
+        if (isDashing || isWindingUp || isEvading) return;
+
+        base.FixedUpdate();
+    }
+
     protected override void ChaseBehavior()
     {
         if (isDashing || isWindingUp || isEvading) return;
@@ -232,14 +239,16 @@ public class Dasher : BaseEnemy
         {
             animator.SetBool("IsDashing", false);
         }
-        
+
         if (dashesRemaining <= 0)
         {
             dashTimer = dashCooldown;
             dashesRemaining = maxDashes;
         }
-        
-        dashTimer = 1f;
+        else
+        {
+            dashTimer = 1f;
+        }
     }
     
     private void StartEvasion()

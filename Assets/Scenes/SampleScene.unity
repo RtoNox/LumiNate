@@ -11525,7 +11525,7 @@ MonoBehaviour:
   maxBattery: 100
   currentBattery: 100
   batteryDrainRate: 4
-  batteryRechargeRate: 15
+  batteryRechargeRate: 2
   requiredWinItems: 50
   flashlightPivot: {fileID: 1840282954}
   mainCamera: {fileID: 2068671360}
@@ -11533,6 +11533,7 @@ MonoBehaviour:
   playerSprite: {fileID: 1375877951}
   playerAnimator: {fileID: 1375877956}
   playerLight: {fileID: 1197436792}
+  playerGlowParticles: {fileID: 1196194754}
   flashlightRevealDamage: 20
   damageParticles: {fileID: 0}
   healParticles: {fileID: 0}
