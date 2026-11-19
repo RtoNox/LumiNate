@@ -225,10 +225,10 @@ public class PlayerController : MonoBehaviour, IDamageable, IRechargeable
             ToggleFlashlight();
         }
         
-        if (Input.GetKeyDown(KeyCode.P) && UnityEditor.EditorApplication.isPlaying)
-        {
-            TestWinItemPickup();
-        }
+        // if (Input.GetKeyDown(KeyCode.P) && UnityEditor.EditorApplication.isPlaying)
+        // {
+        //     TestWinItemPickup();
+        // }
     }
     
     void TestWinItemPickup()
