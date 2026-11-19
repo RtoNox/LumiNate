@@ -11526,7 +11526,7 @@ MonoBehaviour:
   currentBattery: 100
   batteryDrainRate: 4
   batteryRechargeRate: 2
-  requiredWinItems: 50
+  requiredWinItems: 100
   flashlightPivot: {fileID: 1840282954}
   mainCamera: {fileID: 2068671360}
   flashlight: {fileID: 1840282955}
@@ -12738,6 +12738,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spawnDistanceFromCamera: 12
   minDistanceBetweenSpawns: 3
+  maxActiveEnemies: 50
   enemyTypes:
   - enemyPrefab: {fileID: 6490758351114895272, guid: 33465fea959dbba499c5ca3e689b0336, type: 3}
     baseCount: 5
@@ -12747,17 +12748,16 @@ MonoBehaviour:
     baseCount: 5
     baseSpawnRate: 0.5
     quantityMultiplier: 1.1
-  timeBetweenWaves: 5
-  autoStartSpawning: 1
-  quantityIncreaseRate: 0.4
-  maxQuantityMultiplier: 10
-  baseEnemiesPerWave: 5
-  enemiesPerWaveIncrease: 0.3
-  maxEnemiesPerWave: 100
-  currentWaveNumber: 0
+  initialSpawnInterval: 5
+  spawnRateIncreaseInterval: 120
+  initialSpawnRate: 0.2
+  spawnRateIncrease: 1
+  maxSpawnRate: 10
+  initialEnemies: 5
+  gameTime: 0
   enemiesRemaining: 0
   isSpawning: 0
-  currentQuantityMultiplier: 1
+  currentSpawnRate: 0.2
   player: {fileID: 1375877953}
 --- !u!114 &1978530536
 MonoBehaviour:
